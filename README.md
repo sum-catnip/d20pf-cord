@@ -20,6 +20,8 @@ sample input ([source](https://www.d20pfsrd.com/bestiary/monster-listings/outsid
 
 
 # TODO
+- undo attack roll ordering and dmg accumulation
+- stop being an idiot
 - parse negative attack bonus
 - ~~clean up the messy calculation code~~
 - ~~sort output by attack role~~
