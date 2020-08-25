@@ -14,6 +14,7 @@ sample input ([source](https://www.d20pfsrd.com/bestiary/monster-listings/outsid
 
 
 # TODO
+- parse negative attack bonus
 - ~~clean up the messy calculation code~~
 - ~~sort output by attack role~~
 - ~~display 1's~~
