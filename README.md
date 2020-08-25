@@ -16,6 +16,8 @@ sample input ([source](https://www.d20pfsrd.com/bestiary/monster-listings/outsid
 # TODO
 - clean up the messy calculation code
 - sort output by attack role
+- display 1's
+- add-up current dmg (except for 1's)
 - roll extra's if they are rollable
 - use markown memes in output (mainly bold)
 - parse pathfinder2 stuff and maybe dnd
