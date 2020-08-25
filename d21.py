@@ -108,7 +108,7 @@ class Roll:
             yield Roll(Atk.parse(atk), Dmg.parse(dmg))
 
 
-bot = commands.Bot(command_prefix='d20pf ')
+bot = commands.Bot(command_prefix='d21 ')
 
 
 @bot.event
@@ -156,5 +156,5 @@ async def pf(ctx: Context, *arg):
     await ctx.send(embed=embed)
 
 
-if len(sys.argv) != 2: raise SystemExit('usage: python <d20pf.py> <bot token>')
+if len(sys.argv) != 2: raise SystemExit('usage: python <d21.py> <bot token>')
 bot.run(sys.argv[1])
