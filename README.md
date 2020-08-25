@@ -18,6 +18,7 @@ sample input ([source](https://www.d20pfsrd.com/bestiary/monster-listings/outsid
 - sort output by attack role
 - roll extra's if they are rollable
 - use markown memes in output (mainly bold)
+- parse pathfinder2 stuff and maybe dnd
 - dice calculator command with dice templating, showing dice results seperately
 - parse player attacks?
 - maybe scrape testcases from d20pfsrd.com
