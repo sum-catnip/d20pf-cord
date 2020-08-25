@@ -19,7 +19,7 @@ sample input ([source](https://www.d20pfsrd.com/bestiary/monster-listings/outsid
 - ~~sort output by attack role~~
 - ~~display 1's~~
 - ~~add-up current dmg (except for 1's)~~
-- roll extra's if they are rollable
+- roll extras if they're are rollable
 - ~~use markown memes in output (mainly bold)~~
 - parse pathfinder2 stuff and maybe dnd
 - dice calculator command with dice templating, showing dice results seperately
