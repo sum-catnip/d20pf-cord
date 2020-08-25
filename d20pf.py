@@ -14,7 +14,7 @@ from discord.ext.commands import Context
 re_roll = re.compile(r'\s*(?P<atk>.*?\S)\s*\((?P<dmg>.*?)\)\s*(?:\,|and|or)?')
 re_atk = re.compile(r'(?P<count>\d+)?\s*(?P<name>.*?)\s*(?P<atk>(?:\+\d+/?)+)$')
 re_atkpart = re.compile(r'\+(?P<val>\d+)')
-re_dmg = re.compile(r'(?P<quant>\d+)d(?P<dice>\d)(?:\+(?P<bonus>\d+))?(?:/(?:(?P<crit_from>\d+)[–-](?P<crit_to>\d+)))?(?:/[×x*](?P<crit_mod>\d+))?\s*(?:plus\s*(?P<extra>.*))?')
+re_dmg = re.compile(r'(?P<quant>\d+)d(?P<dice>\d+)(?:\+(?P<bonus>\d+))?(?:/(?:(?P<crit_from>\d+)[–-](?P<crit_to>\d+)))?(?:/[×x*](?P<crit_mod>\d+))?\s*(?:plus\s*(?P<extra>.*))?')
 
 
 @dataclass
@@ -116,8 +116,15 @@ async def on_ready():
     print(f'{bot.user.name} connected!')
 
 
+def format_atk(roll: Roll, d20: int, part: AtkPart, res: int) -> str:
+    atkbuf = f'{roll.atk} {part} = ({d20}) {part} = **{res}**'
+    if   roll.dmg.iscrit(d20): atkbuf = f'__{atkbuf} <crit>__'
+    elif d20 == 1            : atkbuf = f'~~{atkbuf} <nat1>~~'
+    return atkbuf
+
+
 @bot.command()
-async def monster(ctx: Context, *arg):
+async def pf(ctx: Context, *arg):
     string = ' '.join(arg)
     rolls = Roll.parse(string)
 
@@ -129,29 +136,23 @@ async def monster(ctx: Context, *arg):
     # unwrap the roll attack parts in one flatmap
     rolled = ((r, p, d20, res) for r in rolls for p, d20, res in r.atk.roll())
     for roll, part, d20, res in sorted(rolled, key=lambda x: x[3], reverse=True):
-        crit = roll.dmg.iscrit(d20)
-        nat1 = d20 == 1
-
-        atkbuf = f'{roll.atk} {part} = ({d20}) {part} = **{res}**'
-        if   crit: atkbuf = f'__{atkbuf} <crit>__'
-        elif nat1: atkbuf = f'~~{atkbuf} <nat1>~~'
-
         dmg = list(roll.dmg.roll())
-        total = sum(dmg)
+        total = sum(dmg) + roll.dmg.bonus
 
+        # 2d8 +14 = (4, 8) +14
         dmgbuf = f'{roll.dmg} = _({", ".join((str(x) for x in dmg))})_ +{roll.dmg.bonus}'
-        if crit: 
-            dmgbuf = f'{dmgbuf} * {roll.dmg.crit_mod}'
-            total * roll.dmg.crit_mod
+        if roll.dmg.iscrit(d20): 
+            dmgbuf = f'{dmgbuf} *{roll.dmg.crit_mod}'
+            total *= roll.dmg.crit_mod
 
         dmgbuf = f'{dmgbuf} = **{total}**'
-        if roll.dmg.extra: dmgbuf = f'{dmgbuf} plus {roll.dmg.extra}'
+        if roll.dmg.extra: dmgbuf = f'{dmgbuf} _+ {roll.dmg.extra}_'
 
-        if not nat1:
+        if not d20 == 1:
             dmg_curr += total
-            dmgbuf = f'{dmgbuf} | curr **{dmg_curr}**'
+            dmgbuf = f'{dmgbuf} | **Σ {dmg_curr}**'
 
-        embed.add_field(name=atkbuf, value=dmgbuf, inline=False)
+        embed.add_field(name=format_atk(roll, d20, part, res), value=dmgbuf, inline=False)
     await ctx.send(embed=embed)
 
 
