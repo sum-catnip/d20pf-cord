@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import sys
 from random import randint
-from typing import Tuple, Generator, Optional, Sequence
+from typing import Tuple, Generator, Optional, Sequence, List, Iterator
 from dataclasses import dataclass
 
 import discord
@@ -28,6 +28,14 @@ class AtkPart:
             for a in re_atkpart.findall(string): yield cls(int(a))
 
 
+    def __repr__(self): return f'+{self.bonus}'
+
+
+    def roll(self) -> Tuple[int, int]:
+        d20 = randint(1, 20)
+        return (d20, d20 + self.bonus)
+
+
 @dataclass
 class Atk:
     name:  str
@@ -40,6 +48,16 @@ class Atk:
         if not match: raise ValueError(f'invalid format in attack: [{string}]')
         parts = AtkPart.parse(int(match.group('count') or 1), match.group('atk'))
         return cls(match.group('name'), parts)
+
+
+    def __repr__(self): return self.name
+
+
+    def roll(self) -> Generator[Tuple[AtkPart, int, int], None, None]:
+        """returns the atkpart, rolled d20 and d20 + bonus"""
+        for p in self.parts:
+            d, r = p.roll()
+            yield (p, d, r)
 
 
 @dataclass
@@ -64,6 +82,18 @@ class Dmg:
                    int(match.group('crit_to')   or 20),
                    int(match.group('crit_mod')  or 2),
                        match.group('extra'))
+
+
+    def __repr__(self):
+        return f'{self.quantity}d{self.dice} +{self.bonus}'
+
+
+    def roll(self) -> Iterator[int]:
+        return (randint(1, self.dice) for _ in range(self.quantity))
+
+
+    def iscrit(self, roll: int) -> bool:
+        return self.crit_from <= roll <= self.crit_to
 
 
 @dataclass
@@ -94,35 +124,34 @@ async def monster(ctx: Context, *arg):
     embed = discord.Embed()
     embed.set_footer(text=string)
 
-    for roll in rolls:
-        for part in roll.atk.parts:
-            d20 = randint(1, 20)
-            crit = roll.dmg.crit_from <= d20 <= roll.dmg.crit_to
-            res = d20 + part.bonus
-            atkstr = f'{roll.atk.name} +{part.bonus} = [{d20}] + {part.bonus} = {res}'
-            if crit: atkstr += ' | <crit>'
-            
-            dmg = roll.dmg
-            dmgstr = f'{dmg.quantity}d{dmg.dice} + {dmg.bonus}'
-            if crit: dmgstr += f' * {dmg.crit_mod}'
-            dmgstr += ' = ['
+    dmg_curr = 0
 
-            res = dmg.bonus
-            for i in range(1, dmg.quantity +1):
-                dn = randint(1, dmg.dice)
-                res += dn
-                dmgstr += f'{dn}'
-                if i < dmg.quantity: dmgstr += ', '
+    # unwrap the roll attack parts in one flatmap
+    rolled = ((r, p, d20, res) for r in rolls for p, d20, res in r.atk.roll())
+    for roll, part, d20, res in sorted(rolled, key=lambda x: x[3], reverse=True):
+        crit = roll.dmg.iscrit(d20)
+        nat1 = d20 == 1
 
-            dmgstr += f'] + {dmg.bonus}'
-            if crit:
-                dmgstr += f' * {dmg.crit_mod}'
-                res *= dmg.crit_mod
+        atkbuf = f'{roll.atk} {part} = ({d20}) {part} = **{res}**'
+        if   crit: atkbuf = f'__{atkbuf} <crit>__'
+        elif nat1: atkbuf = f'~~{atkbuf} <nat1>~~'
 
-            dmgstr += f' = {res}'
-            if dmg.extra: dmgstr += f' | plus {dmg.extra}'
+        dmg = list(roll.dmg.roll())
+        total = sum(dmg)
 
-            embed.add_field(name=atkstr, value=dmgstr, inline=False)
+        dmgbuf = f'{roll.dmg} = _({", ".join((str(x) for x in dmg))})_ +{roll.dmg.bonus}'
+        if crit: 
+            dmgbuf = f'{dmgbuf} * {roll.dmg.crit_mod}'
+            total * roll.dmg.crit_mod
+
+        dmgbuf = f'{dmgbuf} = **{total}**'
+        if roll.dmg.extra: dmgbuf = f'{dmgbuf} plus {roll.dmg.extra}'
+
+        if not nat1:
+            dmg_curr += total
+            dmgbuf = f'{dmgbuf} | curr **{dmg_curr}**'
+
+        embed.add_field(name=atkbuf, value=dmgbuf, inline=False)
     await ctx.send(embed=embed)
 
 
