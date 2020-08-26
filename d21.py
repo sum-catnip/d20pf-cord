@@ -3,11 +3,12 @@ from __future__ import annotations
 from parsers import pf
 
 import sys
+import re
+from random import randint
 
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
-
 
 bot = commands.Bot(command_prefix='d21 ')
 
@@ -17,9 +18,43 @@ async def on_ready():
     print(f'{bot.user.name} connected!')
 
 
+re_ez = re.compile(r'(?P<quant>\d+)d(?P<dice>\d+)')
+
+
+@bot.command(name='ez')
+async def ez_cmd(ctx: Context, *args):
+    string = ' '.join(args)
+    bufcalc = []
+    buffmt  = []
+    curr = 0
+    for roll in re_ez.finditer(string):
+        quant = int(roll.group('quant'))
+        dice  = int(roll.group('dice'))
+        rolls = [randint(1, dice) for _ in range(quant)]
+        res = sum(rolls)
+
+        bufcalc.append(string[curr:roll.start()])
+        buffmt.append(string[curr:roll.start()])
+
+        bufcalc.append(f'{res}')
+        buffmt.append(f'(__[{", ".join((str(x) for x in rolls))}] = {res}__)')
+
+        curr = roll.end()
+    bufcalc.append(string[curr:])
+    buffmt.append(string[curr:])
+
+    calcstr = ''.join(bufcalc)
+    fmtstr  = ''.join(buffmt)
+
+    embed=discord.Embed()
+    embed.add_field(name=fmtstr, value='', inline=True)
+    embed.set_footer(text=string)
+    await ctx.send(embed=embed)
+
+
 @bot.command(name='pf')
-async def pf_cmd(ctx: Context, *arg):
-    string = ' '.join(arg)
+async def pf_cmd(ctx: Context, *args):
+    string = ' '.join(args)
     rolls = pf.Roll.parse(string)
 
     embed = discord.Embed()
