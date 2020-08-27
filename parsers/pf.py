@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from random import randint
-from typing import Tuple, Generator, Optional, Sequence, List, Iterator
+from typing import Tuple, Generator, Optional, Iterator
 from dataclasses import dataclass
 
 
@@ -16,15 +16,12 @@ re_dmg = re.compile(r'(?P<quant>\d+)d(?P<dice>\d+)(?:\+(?P<bonus>\d+))?(?:/(?:(?
 class AtkPart:
     bonus: int
 
-
     @classmethod
     def parse(cls, count: int, string: str) -> Generator[AtkPart, None, None]:
         for _ in range(count):
             for a in re_atkpart.findall(string): yield cls(int(a))
 
-
     def __repr__(self): return f'+{self.bonus}'
-
 
     def roll(self) -> Tuple[int, int]:
         d20 = randint(1, 20)
@@ -36,7 +33,6 @@ class Atk:
     name:  str
     parts: Generator[AtkPart, None, None]
 
-
     @classmethod
     def parse(cls, string: str) -> Atk:
         match = re_atk.match(string)
@@ -44,9 +40,7 @@ class Atk:
         parts = AtkPart.parse(int(match.group('count') or 1), match.group('atk'))
         return cls(match.group('name'), parts)
 
-
     def __repr__(self): return self.name
-
 
     def roll(self) -> Generator[Tuple[AtkPart, int, int], None, None]:
         """returns the atkpart, rolled d20 and d20 + bonus"""
@@ -65,7 +59,6 @@ class Dmg:
     crit_mod:  int
     extra:     Optional[str]
 
-
     @classmethod
     def parse(cls, string: str) -> Dmg:
         match = re_dmg.match(string)
@@ -78,14 +71,11 @@ class Dmg:
                    int(match.group('crit_mod')  or 2),
                        match.group('extra'))
 
-
     def __repr__(self):
         return f'{self.quantity}d{self.dice} +{self.bonus}'
 
-
     def roll(self) -> Iterator[int]:
         return (randint(1, self.dice) for _ in range(self.quantity))
-
 
     def iscrit(self, roll: int) -> bool:
         return self.crit_from <= roll <= self.crit_to
@@ -95,7 +85,6 @@ class Dmg:
 class Roll:
     atk: Atk
     dmg: Dmg
-
 
     @classmethod
     def parse(cls, string: str) -> Generator[Roll, None, None]:

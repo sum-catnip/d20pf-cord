@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from parsers import pf
+from parsers import pf, pf2
 
 import sys
 import re
@@ -12,7 +12,7 @@ from discord.ext.commands import Context
 
 from py_expression_eval import Parser as Calc
 
-bot = commands.Bot(command_prefix='d')
+bot = commands.Bot(command_prefix='=')
 
 
 @bot.event
@@ -82,7 +82,7 @@ async def pf_cmd(ctx: Context, *args):
         total = sum(dmg) + roll.dmg.bonus
 
         # 2d8 +14 = (4, 8) +14
-        dmgbuf = f'{roll.dmg} = _({", ".join((str(x) for x in dmg))})_ +{roll.dmg.bonus}'
+        dmgbuf = f'{roll.dmg} = _({", ".join(map(str, dmg))})_ +{roll.dmg.bonus}'
         if roll.dmg.iscrit(d20): 
             dmgbuf = f'{dmgbuf} *{roll.dmg.crit_mod}'
             total *= roll.dmg.crit_mod
@@ -91,6 +91,42 @@ async def pf_cmd(ctx: Context, *args):
         if roll.dmg.extra: dmgbuf = f'{dmgbuf} _+ {roll.dmg.extra}_'
 
         embed.add_field(name=atkbuf, value=dmgbuf, inline=False)
+    await ctx.send(embed=embed)
+
+
+@bot.command(name='pf2')
+async def pf2_cmd(ctx: Context, *args):
+    string = ' '.join(args)
+    rolls = pf2.Roll.parse(string)
+    
+    embed = discord.Embed(color=0xb935ff)
+    embed.set_footer(text=string)
+
+    for i, roll in enumerate(rolls):
+        d20, pen, res = roll.atk.roll(i)
+
+        atkbuf = f'{roll.atk} = ({d20}) +{roll.atk.bonus}'
+        if pen > 0: atkbuf += f' - {pen}'
+        extras = ", ".join((str(x) for x in roll.atk.extra))
+        atkbuf += f' = **{res}** & ({extras})'
+        if   d20 == 20: atkbuf = f'__{atkbuf} <crit>__'
+        elif d20 == 1:  atkbuf = f'~~{atkbuf} <nat1>~~'
+
+        dmgbuf = []
+        for dmg in roll.dmg:
+            currbuf = str(dmg)
+            if dmg.quantity:
+                rdmg  = list(dmg.roll())
+                total = sum(rdmg)
+                currbuf = f'{currbuf} = ({", ".join(map(str, rdmg))})'
+                if d20 == 20:
+                    currbuf += ' *2'
+                    total *= 2
+                currbuf += f' = **{total}**'
+                if dmg.type: currbuf += f' {dmg.type}'
+            dmgbuf.append(currbuf)
+
+        embed.add_field(name=atkbuf, value='; '.join(dmgbuf), inline=False)
     await ctx.send(embed=embed)
 
 
