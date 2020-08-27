@@ -48,12 +48,6 @@ multiple attacks sample input (any amount of attacks is possible):
 pf2.d20pfsrd format is also supported:
 > =pf2 longsword +28 (magical, reach 10 feet, versatile P), Damage 2d8+15 slashing; fist +25 (agile, reach 10 feet, nonlethal), Damage 3d8+13 bludgeoning
 
-## ez
-parses a string for dice rolls and runs a calculation with the dice results.
-- each dice is displayed seperately
-- each roll is also displayed seperately
-- 1s and 20s are highlighted
-- diceroll results are highlighted in the final formular
 # TODO
 - ~~undo attack roll ordering and dmg accumulation~~
 - stop being an idiot
