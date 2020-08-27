@@ -1,5 +1,6 @@
 # d21cord
 tabletop rpg dice parsing and rolling utility bot
+[invite me!](https://discord.com/api/oauth2/authorize?client_id=747425300211826748&permissions=2048&scope=bot)
 
 # supported commands:
 
