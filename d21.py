@@ -10,7 +10,9 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 
-bot = commands.Bot(command_prefix='d21 ')
+from py_expression_eval import Parser as Calc
+
+bot = commands.Bot(command_prefix='d')
 
 
 @bot.event
@@ -23,7 +25,11 @@ re_ez = re.compile(r'(?P<quant>\d+)d(?P<dice>\d+)')
 
 @bot.command(name='ez')
 async def ez_cmd(ctx: Context, *args):
+    # dont look at this mess please
+
     string = ' '.join(args)
+    embed = discord.Embed(color=0xb935ff)
+
     bufcalc = []
     buffmt  = []
     curr = 0
@@ -36,18 +42,24 @@ async def ez_cmd(ctx: Context, *args):
         bufcalc.append(string[curr:roll.start()])
         buffmt.append(string[curr:roll.start()])
 
+        def rollfmt(r: int) -> str:
+            if r == 20 or r == 1: return f'**{r}**'
+            return f'{r}'
+
+        embed.add_field(name=f'{quant}d{dice} = {res}',
+                        value=f'{", ".join((rollfmt(x) for x in rolls))}',
+                        inline=False)
+
         bufcalc.append(f'{res}')
-        buffmt.append(f'(__[{", ".join((str(x) for x in rolls))}] = {res}__)')
+        buffmt.append(f'**{res}**')
 
         curr = roll.end()
     bufcalc.append(string[curr:])
     buffmt.append(string[curr:])
 
-    calcstr = ''.join(bufcalc)
-    fmtstr  = ''.join(buffmt)
+    res = Calc().parse(''.join(bufcalc)).evaluate({})
 
-    embed=discord.Embed()
-    embed.add_field(name=fmtstr, value='', inline=True)
+    embed.description = f'{"".join(buffmt)} = **{res}**'
     embed.set_footer(text=string)
     await ctx.send(embed=embed)
 
@@ -57,7 +69,7 @@ async def pf_cmd(ctx: Context, *args):
     string = ' '.join(args)
     rolls = pf.Roll.parse(string)
 
-    embed = discord.Embed()
+    embed = discord.Embed(color=0xb935ff)
     embed.set_footer(text=string)
 
     # unwrap the roll attack parts in one flatmap
